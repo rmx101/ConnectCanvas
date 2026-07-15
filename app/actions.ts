@@ -2,7 +2,7 @@
 
 import { createHash, randomBytes } from "node:crypto";
 
-import { and, count, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -60,6 +60,27 @@ async function findCanvas(publicToken: string) {
   return canvas;
 }
 
+async function reserveParticipantSlot(canvasId: string, displayName: string, privateTokenHash: string) {
+  for (const slot of [1, 2] as const) {
+    const [participant] = await db
+      .insert(participants)
+      .values({
+        canvasId,
+        displayName,
+        privateSessionTokenHash: privateTokenHash,
+        slot,
+      })
+      .onConflictDoNothing({ target: [participants.canvasId, participants.slot] })
+      .returning({ id: participants.id });
+
+    if (participant) {
+      return participant;
+    }
+  }
+
+  return null;
+}
+
 export async function startCanvas() {
   const publicToken = createPublicToken();
 
@@ -68,11 +89,11 @@ export async function startCanvas() {
   redirect(`/c/${publicToken}`);
 }
 
-export async function createParticipant(publicToken: string, formData: FormData) {
+async function createParticipantForCanvas(publicToken: string, formData: FormData, options: { restoreExisting: boolean }) {
   const displayName = normalizeText(formData.get("displayName"), maxDisplayNameLength);
 
   if (!displayName) {
-    redirect(`/c/${publicToken}?error=name`);
+    redirect(`/c/${publicToken}${options.restoreExisting ? "" : "/join"}?error=name`);
   }
 
   const canvas = await findCanvas(publicToken);
@@ -84,7 +105,7 @@ export async function createParticipant(publicToken: string, formData: FormData)
   const cookieStore = await cookies();
   const existingToken = cookieStore.get(participantCookieName)?.value;
 
-  if (existingToken) {
+  if (options.restoreExisting && existingToken) {
     const [existingParticipant] = await db
       .select({ id: participants.id })
       .from(participants)
@@ -101,26 +122,24 @@ export async function createParticipant(publicToken: string, formData: FormData)
     }
   }
 
-  const [{ value: participantCount }] = await db
-    .select({ value: count() })
-    .from(participants)
-    .where(eq(participants.canvasId, canvas.id));
-
-  if (participantCount >= 2) {
-    redirect(`/c/${publicToken}?error=full`);
-  }
-
   const privateToken = createPrivateToken();
+  const participant = await reserveParticipantSlot(canvas.id, displayName, hashToken(privateToken));
 
-  await db.insert(participants).values({
-    canvasId: canvas.id,
-    displayName,
-    privateSessionTokenHash: hashToken(privateToken),
-  });
+  if (!participant) {
+    redirect(`/c/${publicToken}${options.restoreExisting ? "" : "/join"}?error=full`);
+  }
 
   cookieStore.set(participantCookieName, privateToken, cookieOptions(publicToken));
 
   redirect(`/c/${publicToken}`);
+}
+
+export async function createParticipant(publicToken: string, formData: FormData) {
+  await createParticipantForCanvas(publicToken, formData, { restoreExisting: true });
+}
+
+export async function createJoinParticipant(publicToken: string, formData: FormData) {
+  await createParticipantForCanvas(publicToken, formData, { restoreExisting: false });
 }
 
 export async function saveReflection(publicToken: string, reflectionId: string, formData: FormData) {
