@@ -102,6 +102,10 @@ export default async function CanvasPage({ params, searchParams }: CanvasPagePro
     : [];
   const participant = participantRows[0];
 
+  if (participant) {
+    await db.update(canvases).set({ lastViewedAt: new Date() }).where(eq(canvases.id, canvas.id));
+  }
+
   if (!participant) {
     const [{ value: participantCount }] = await db
       .select({ value: count() })
