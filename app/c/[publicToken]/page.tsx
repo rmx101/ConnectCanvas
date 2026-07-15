@@ -175,7 +175,7 @@ export default async function CanvasPage({ params, searchParams }: CanvasPagePro
           When someone else adds theirs, this canvas can begin to take shape.
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <CopyInvitationLink />
+          <CopyInvitationLink publicToken={publicToken} />
           <Link href="/" className="w-full sm:w-auto">
             <Button type="button" variant="secondary" className="w-full">Start another canvas</Button>
           </Link>

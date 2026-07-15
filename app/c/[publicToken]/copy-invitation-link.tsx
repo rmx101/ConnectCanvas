@@ -4,11 +4,31 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
-export function CopyInvitationLink() {
+const canonicalAppUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+
+type CopyInvitationLinkProps = {
+  publicToken: string;
+};
+
+function getInvitationOrigin() {
+  if (canonicalAppUrl) {
+    return canonicalAppUrl;
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    return window.location.origin;
+  }
+
+  return "https://connect-canvas-sooty.vercel.app";
+}
+
+export function CopyInvitationLink({ publicToken }: CopyInvitationLinkProps) {
   const [copied, setCopied] = useState(false);
 
   async function copyLink() {
-    await navigator.clipboard.writeText(window.location.href);
+    const invitationLink = `${getInvitationOrigin()}/c/${publicToken}/join`;
+
+    await navigator.clipboard.writeText(invitationLink);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2200);
   }

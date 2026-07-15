@@ -5,6 +5,10 @@ import test from "node:test";
 const actions = await readFile(new URL("../app/actions.ts", import.meta.url), "utf8");
 const normalPage = await readFile(new URL("../app/c/[publicToken]/page.tsx", import.meta.url), "utf8");
 const joinPage = await readFile(new URL("../app/c/[publicToken]/join/page.tsx", import.meta.url), "utf8");
+const copyInvitationLink = await readFile(
+  new URL("../app/c/[publicToken]/copy-invitation-link.tsx", import.meta.url),
+  "utf8",
+);
 const migration = await readFile(new URL("../db/migrations/0002_even_meggan.sql", import.meta.url), "utf8");
 
 test("normal canvas creation restores an existing owner participant session", () => {
@@ -34,6 +38,14 @@ test("third join is rejected as full", () => {
 test("public join invitation views do not update owner last_viewed_at", () => {
   assert.match(normalPage, /lastViewedAt: new Date\(\)/);
   assert.doesNotMatch(joinPage, /lastViewedAt/);
+});
+
+test("invitation copy uses the canonical public join URL instead of preview URLs", () => {
+  assert.match(copyInvitationLink, /process\.env\.NEXT_PUBLIC_APP_URL/);
+  assert.match(copyInvitationLink, /\/c\/\$\{publicToken\}\/join/);
+  assert.match(copyInvitationLink, /navigator\.clipboard\.writeText\(invitationLink\)/);
+  assert.doesNotMatch(copyInvitationLink, /writeText\(window\.location/);
+  assert.doesNotMatch(copyInvitationLink, /window\.location\.href/);
 });
 
 test("migration keeps slot constraints and avoids destructive operations", () => {
