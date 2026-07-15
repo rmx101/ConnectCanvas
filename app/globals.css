@@ -68,5 +68,5 @@ body {
     radial-gradient(circle at 90% 8%, oklch(0.89 0.08 40 / 0.42), transparent 24rem),
     var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: ui-sans-serif, system-ui, sans-serif;
 }
