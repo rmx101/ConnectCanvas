@@ -7,15 +7,14 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { db } from "@/db";
-import { canvases, participants, responses } from "@/db/schema";
+import { canvasOwners, canvases, participants, responses } from "@/db/schema";
 import { isReflectionId, reflections } from "@/app/reflections";
-
-const participantCookieName = "connect_canvas_participant";
+import { ownerCookieName, participantCookieName } from "@/app/session";
 const maxDisplayNameLength = 80;
 const maxResponseLength = 1200;
 
 function createPublicToken() {
-  return randomBytes(16).toString("base64url");
+  return randomBytes(9).toString("base64url");
 }
 
 function createPrivateToken() {
@@ -26,13 +25,23 @@ function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
-function cookieOptions(publicToken: string) {
+function participantCookieOptions(publicToken: string) {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
     secure: process.env.NODE_ENV === "production",
     path: `/c/${publicToken}`,
     maxAge: 60 * 60 * 24 * 30,
+  };
+}
+
+function ownerCookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
   };
 }
 
@@ -83,8 +92,15 @@ async function reserveParticipantSlot(canvasId: string, displayName: string, pri
 
 export async function startCanvas() {
   const publicToken = createPublicToken();
+  const ownerToken = createPrivateToken();
+  const [{ id: canvasId }] = await db.insert(canvases).values({ publicToken }).returning({ id: canvases.id });
 
-  await db.insert(canvases).values({ publicToken });
+  await db.insert(canvasOwners).values({
+    canvasId,
+    ownerSessionTokenHash: hashToken(ownerToken),
+  });
+
+  (await cookies()).set(ownerCookieName, ownerToken, ownerCookieOptions());
 
   redirect(`/c/${publicToken}`);
 }
@@ -129,7 +145,7 @@ async function createParticipantForCanvas(publicToken: string, formData: FormDat
     redirect(`/c/${publicToken}${options.restoreExisting ? "" : "/join"}?error=full`);
   }
 
-  cookieStore.set(participantCookieName, privateToken, cookieOptions(publicToken));
+  cookieStore.set(participantCookieName, privateToken, participantCookieOptions(publicToken));
 
   redirect(`/c/${publicToken}`);
 }

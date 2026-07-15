@@ -1,4 +1,6 @@
 import { startCanvas } from "@/app/actions";
+import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
 
 const landingNotes = [
@@ -24,9 +26,14 @@ export default function Home() {
           <p className="mt-6 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
             Begin with a few calm reflections and leave your perspective when it feels complete.
           </p>
-          <form action={startCanvas} className="mt-8">
-            <Button size="lg" type="submit" className="w-full sm:w-auto">Begin</Button>
-          </form>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <form action={startCanvas}>
+              <Button size="lg" type="submit" className="w-full sm:w-auto">Begin</Button>
+            </form>
+            <Link href="/my" className="w-full sm:w-auto">
+              <Button size="lg" type="button" variant="secondary" className="w-full">Continue</Button>
+            </Link>
+          </div>
         </div>
 
         <ul className="grid gap-3 sm:grid-cols-3">

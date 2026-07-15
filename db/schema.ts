@@ -13,6 +13,16 @@ export const canvases = pgTable("canvases", {
   lastViewedAt: timestamp("last_viewed_at", { withTimezone: true }),
 });
 
+export const canvasOwners = pgTable("canvas_owners", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  canvasId: uuid("canvas_id").notNull().references(() => canvases.id, { onDelete: "cascade" }),
+  ownerSessionTokenHash: text("owner_session_token_hash").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  canvasIdIdx: uniqueIndex("canvas_owners_canvas_id_idx").on(table.canvasId),
+  ownerSessionTokenHashIdx: uniqueIndex("canvas_owners_owner_session_token_hash_idx").on(table.ownerSessionTokenHash),
+}));
+
 export const participants = pgTable("participants", {
   id: uuid("id").defaultRandom().primaryKey(),
   canvasId: uuid("canvas_id").notNull().references(() => canvases.id, { onDelete: "cascade" }),
@@ -38,7 +48,15 @@ export const responses = pgTable("responses", {
 }));
 
 export const canvasesRelations = relations(canvases, ({ many }) => ({
+  owners: many(canvasOwners),
   participants: many(participants),
+}));
+
+export const canvasOwnersRelations = relations(canvasOwners, ({ one }) => ({
+  canvas: one(canvases, {
+    fields: [canvasOwners.canvasId],
+    references: [canvases.id],
+  }),
 }));
 
 export const participantsRelations = relations(participants, ({ one, many }) => ({

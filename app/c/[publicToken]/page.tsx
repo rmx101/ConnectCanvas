@@ -23,6 +23,11 @@ type CanvasPageProps = {
 
 const participantCookieName = "connect_canvas_participant";
 
+function invitationUrl(publicToken: string) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+  return appUrl ? `${appUrl}/c/${publicToken}/join` : `/c/${publicToken}/join`;
+}
+
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
@@ -175,7 +180,7 @@ export default async function CanvasPage({ params, searchParams }: CanvasPagePro
           When someone else adds theirs, this canvas can begin to take shape.
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <CopyInvitationLink />
+          <CopyInvitationLink invitationUrl={invitationUrl(publicToken)} />
           <Link href="/" className="w-full sm:w-auto">
             <Button type="button" variant="secondary" className="w-full">Start another canvas</Button>
           </Link>

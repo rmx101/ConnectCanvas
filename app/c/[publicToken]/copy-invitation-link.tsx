@@ -4,11 +4,11 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
-export function CopyInvitationLink() {
+export function CopyInvitationLink({ invitationUrl }: { invitationUrl: string }) {
   const [copied, setCopied] = useState(false);
 
   async function copyLink() {
-    await navigator.clipboard.writeText(window.location.href);
+    await navigator.clipboard.writeText(invitationUrl);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2200);
   }
