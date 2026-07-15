@@ -1,0 +1,8 @@
+{
+  "name": "connect-canvas",
+  "private": true,
+  "version": "0.0.1",
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.2"
+  }
+}
