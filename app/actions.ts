@@ -6,8 +6,9 @@ import { and, eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { ownerCookieName } from "@/lib/cookies";
 import { db } from "@/db";
-import { canvases, participants, responses } from "@/db/schema";
+import { canvasOwners, canvases, participants, responses } from "@/db/schema";
 import { isReflectionId, reflections } from "@/app/reflections";
 
 const participantCookieName = "connect_canvas_participant";
@@ -22,11 +23,15 @@ function createPrivateToken() {
   return randomBytes(32).toString("base64url");
 }
 
+function createOwnerToken() {
+  return randomBytes(32).toString("base64url");
+}
+
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
-function cookieOptions(publicToken: string) {
+function participantCookieOptions(publicToken: string) {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
@@ -81,12 +86,63 @@ async function reserveParticipantSlot(canvasId: string, displayName: string, pri
   return null;
 }
 
+function ownerCookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+  };
+}
+
+function isUniqueViolation(error: unknown) {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "23505";
+}
+
+async function createOwnedCanvas(ownerTokenHash: string) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const publicToken = createPublicToken();
+
+    try {
+      const canvas = await db.transaction(async (tx) => {
+        const [createdCanvas] = await tx
+          .insert(canvases)
+          .values({ publicToken })
+          .returning({ id: canvases.id, publicToken: canvases.publicToken });
+
+        await tx.insert(canvasOwners).values({
+          canvasId: createdCanvas.id,
+          ownerSessionTokenHash: ownerTokenHash,
+        });
+
+        return createdCanvas;
+      });
+
+      return canvas;
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  throw new Error("Unable to create a unique canvas invitation token.");
+}
+
 export async function startCanvas() {
-  const publicToken = createPublicToken();
+  const cookieStore = await cookies();
+  const existingOwnerToken = cookieStore.get(ownerCookieName)?.value;
+  const ownerToken = existingOwnerToken ?? createOwnerToken();
+  const canvas = await createOwnedCanvas(hashToken(ownerToken));
 
-  await db.insert(canvases).values({ publicToken });
+  if (!existingOwnerToken) {
+    cookieStore.set(ownerCookieName, ownerToken, ownerCookieOptions());
+  }
 
-  redirect(`/c/${publicToken}`);
+  redirect(`/c/${canvas.publicToken}`);
 }
 
 async function createParticipantForCanvas(publicToken: string, formData: FormData, options: { restoreExisting: boolean }) {
@@ -129,7 +185,7 @@ async function createParticipantForCanvas(publicToken: string, formData: FormDat
     redirect(`/c/${publicToken}${options.restoreExisting ? "" : "/join"}?error=full`);
   }
 
-  cookieStore.set(participantCookieName, privateToken, cookieOptions(publicToken));
+  cookieStore.set(participantCookieName, privateToken, participantCookieOptions(publicToken));
 
   redirect(`/c/${publicToken}`);
 }

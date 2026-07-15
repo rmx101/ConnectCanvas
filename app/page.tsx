@@ -1,5 +1,14 @@
+import { createHash } from "node:crypto";
+
+import { eq } from "drizzle-orm";
+import { cookies } from "next/headers";
+import Link from "next/link";
+
 import { startCanvas } from "@/app/actions";
+import { ownerCookieName } from "@/lib/cookies";
 import { Button } from "@/components/ui/button";
+import { db } from "@/db";
+import { canvasOwners } from "@/db/schema";
 
 const landingNotes = [
   "A quiet place to begin",
@@ -7,7 +16,29 @@ const landingNotes = [
   "No scores or accounts",
 ];
 
-export default function Home() {
+function hashToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+async function hasOwnedCanvas() {
+  const ownerToken = (await cookies()).get(ownerCookieName)?.value;
+
+  if (!ownerToken) {
+    return false;
+  }
+
+  const [ownedCanvas] = await db
+    .select({ id: canvasOwners.id })
+    .from(canvasOwners)
+    .where(eq(canvasOwners.ownerSessionTokenHash, hashToken(ownerToken)))
+    .limit(1);
+
+  return Boolean(ownedCanvas);
+}
+
+export default async function Home() {
+  const showContinue = await hasOwnedCanvas();
+
   return (
     <main className="min-h-screen px-5 py-6 sm:px-8">
       <section className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-4xl flex-col justify-between rounded-[2rem] border bg-card/85 p-6 shadow-sm backdrop-blur sm:p-10">
@@ -24,9 +55,18 @@ export default function Home() {
           <p className="mt-6 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
             Begin with a few calm reflections and leave your perspective when it feels complete.
           </p>
-          <form action={startCanvas} className="mt-8">
-            <Button size="lg" type="submit" className="w-full sm:w-auto">Begin</Button>
-          </form>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <form action={startCanvas}>
+              <Button size="lg" type="submit" className="w-full sm:w-auto">Begin</Button>
+            </form>
+            {showContinue ? (
+              <Link href="/my" className="w-full sm:w-auto">
+                <Button size="lg" type="button" variant="secondary" className="w-full">
+                  Continue to your canvases
+                </Button>
+              </Link>
+            ) : null}
+          </div>
         </div>
 
         <ul className="grid gap-3 sm:grid-cols-3">
