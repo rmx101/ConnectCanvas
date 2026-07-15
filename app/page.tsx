@@ -1,3 +1,4 @@
+import { startCanvas } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 
 const foundationItems = [
@@ -30,7 +31,9 @@ export default function Home() {
             This App Router shell replaces the static placeholder and keeps the product ready for Vercel and Neon without starting the Discovery flow.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button size="lg">Application foundation ready</Button>
+            <form action={startCanvas}>
+              <Button size="lg" type="submit">Start a canvas</Button>
+            </form>
             <Button size="lg" variant="secondary">Business features intentionally deferred</Button>
           </div>
         </div>
