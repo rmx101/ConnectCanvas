@@ -103,23 +103,13 @@ function isUniqueViolation(error: unknown) {
 async function createOwnedCanvas(ownerTokenHash: string) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const publicToken = createPublicToken();
+    let canvas: { id: string; publicToken: string };
 
     try {
-      const canvas = await db.transaction(async (tx) => {
-        const [createdCanvas] = await tx
-          .insert(canvases)
-          .values({ publicToken })
-          .returning({ id: canvases.id, publicToken: canvases.publicToken });
-
-        await tx.insert(canvasOwners).values({
-          canvasId: createdCanvas.id,
-          ownerSessionTokenHash: ownerTokenHash,
-        });
-
-        return createdCanvas;
-      });
-
-      return canvas;
+      [canvas] = await db
+        .insert(canvases)
+        .values({ publicToken })
+        .returning({ id: canvases.id, publicToken: canvases.publicToken });
     } catch (error) {
       if (isUniqueViolation(error)) {
         continue;
@@ -127,6 +117,18 @@ async function createOwnedCanvas(ownerTokenHash: string) {
 
       throw error;
     }
+
+    try {
+      await db.insert(canvasOwners).values({
+        canvasId: canvas.id,
+        ownerSessionTokenHash: ownerTokenHash,
+      });
+    } catch (error) {
+      await db.delete(canvases).where(eq(canvases.id, canvas.id));
+      throw error;
+    }
+
+    return canvas;
   }
 
   throw new Error("Unable to create a unique canvas invitation token.");
