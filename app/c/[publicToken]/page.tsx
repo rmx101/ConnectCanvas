@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { and, count, eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { createParticipant, saveReflection, startCanvas } from "@/app/actions";
 import { CopyInvitationLink } from "@/app/c/[publicToken]/copy-invitation-link";
@@ -11,6 +11,8 @@ import { reflections } from "@/app/reflections";
 import { Button } from "@/components/ui/button";
 import { db } from "@/db";
 import { canvases, participants, responses } from "@/db/schema";
+import { getSharedCanvasState } from "@/lib/canvas-readiness";
+import { participantCookieName } from "@/lib/cookies";
 
 type CanvasPageProps = {
   params: Promise<{
@@ -20,8 +22,6 @@ type CanvasPageProps = {
     error?: string;
   }>;
 };
-
-const participantCookieName = "connect_canvas_participant";
 
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
@@ -83,7 +83,7 @@ export default async function CanvasPage({ params, searchParams }: CanvasPagePro
     notFound();
   }
 
-  const privateToken = (await cookies()).get(participantCookieName)?.value;
+  const privateToken = (await cookies()).get(participantCookieName(publicToken))?.value;
   const participantRows = privateToken
     ? await db
         .select({
@@ -162,6 +162,12 @@ export default async function CanvasPage({ params, searchParams }: CanvasPagePro
   const nextReflection = reflections.find((reflection) => !savedReflectionIds.has(reflection.id));
 
   if (participant.completedAt || !nextReflection) {
+    const sharedState = await getSharedCanvasState(canvas.id);
+
+    if (sharedState.ready) {
+      redirect(`/canvas/${publicToken}`);
+    }
+
     return (
       <Shell>
         <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-accent/70">
@@ -175,6 +181,9 @@ export default async function CanvasPage({ params, searchParams }: CanvasPagePro
           When someone else adds theirs, this canvas can begin to take shape.
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <Link href={`/c/${publicToken}`} className="w-full sm:w-auto">
+            <Button type="button" variant="secondary" className="w-full">Check again</Button>
+          </Link>
           <CopyInvitationLink />
           <Link href="/" className="w-full sm:w-auto">
             <Button type="button" variant="secondary" className="w-full">Start another canvas</Button>

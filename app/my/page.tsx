@@ -9,7 +9,8 @@ import { ownerCookieName } from "@/lib/cookies";
 import { CopyInvitationLink } from "@/app/c/[publicToken]/copy-invitation-link";
 import { Button } from "@/components/ui/button";
 import { db } from "@/db";
-import { canvasOwners, canvases, participants } from "@/db/schema";
+import { canvasOwners, canvases } from "@/db/schema";
+import { getSharedCanvasState, type ReadyParticipant } from "@/lib/canvas-readiness";
 
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
@@ -19,10 +20,14 @@ function formatDate(date: Date | null) {
   return date ? new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(date) : null;
 }
 
-function statusText(rows: { completedAt: Date | null }[]) {
-  const completedCount = rows.filter((row) => row.completedAt).length;
+function statusText(sharedState: { ready: boolean; participants: ReadyParticipant[] }) {
+  const completedCount = sharedState.participants.filter((participant) => participant.completedAt).length;
 
-  if (rows.length < 2) {
+  if (sharedState.ready) {
+    return "Ready to open";
+  }
+
+  if (sharedState.participants.length < 2) {
     return "Waiting for another perspective";
   }
 
@@ -30,10 +35,10 @@ function statusText(rows: { completedAt: Date | null }[]) {
     return "Another perspective is in progress";
   }
 
-  return "Ready to open";
+  return "Another perspective is in progress";
 }
 
-function completionText(rows: { completedAt: Date | null }[]) {
+function completionText(rows: ReadyParticipant[]) {
   const completedCount = rows.filter((row) => row.completedAt).length;
   return completedCount === 1 ? "One perspective complete" : `${completedCount === 2 ? "Two" : "No"} perspectives complete`;
 }
@@ -57,10 +62,7 @@ export default async function MyCanvasesPage() {
   const cards = await Promise.all(
     ownedCanvases.map(async (canvas) => ({
       ...canvas,
-      participantRows: await db
-        .select({ completedAt: participants.completedAt })
-        .from(participants)
-        .where(eq(participants.canvasId, canvas.id)),
+      sharedState: await getSharedCanvasState(canvas.id),
     })),
   );
 
@@ -87,15 +89,15 @@ export default async function MyCanvasesPage() {
                 <article key={canvas.id} className="rounded-3xl border bg-background/70 p-5">
                   <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      <p className="text-lg font-semibold">{statusText(canvas.participantRows)}</p>
-                      <p className="mt-2 text-sm text-muted-foreground">{completionText(canvas.participantRows)}</p>
+                      <p className="text-lg font-semibold">{statusText(canvas.sharedState)}</p>
+                      <p className="mt-2 text-sm text-muted-foreground">{completionText(canvas.sharedState.participants)}</p>
                       <dl className="mt-4 space-y-1 text-sm text-muted-foreground">
                         <div><dt className="inline font-medium text-foreground">Created:</dt> <dd className="inline">{formatDate(canvas.createdAt)}</dd></div>
                         {lastViewed ? <div><dt className="inline font-medium text-foreground">Last viewed:</dt> <dd className="inline">{lastViewed}</dd></div> : null}
                       </dl>
                     </div>
                     <div className="flex w-full flex-col gap-2 sm:w-auto">
-                      <Link href={`/c/${canvas.publicToken}`} className="w-full sm:w-auto">
+                      <Link href={canvas.sharedState.ready ? `/canvas/${canvas.publicToken}` : `/c/${canvas.publicToken}`} className="w-full sm:w-auto">
                         <Button type="button" className="w-full">Open</Button>
                       </Link>
                       <CopyInvitationLink publicToken={canvas.publicToken} label="Copy invitation" />
