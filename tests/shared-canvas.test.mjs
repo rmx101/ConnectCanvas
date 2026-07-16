@@ -79,3 +79,13 @@ test("both shared canvases remain accessible from the same browser", () => {
   assert.match(sharedPage, /eq\(participants\.canvasId, canvas\.id\)/);
   assert.match(sharedPage, /const sharedState = await getSharedCanvasState\(canvas\.id\);/);
 });
+
+
+test("participant session code no longer reads or writes the old global cookie name", async () => {
+  const cookieConstants = await readFile(new URL("../lib/cookies.ts", import.meta.url), "utf8");
+  const participantSessionSources = [actions, normalPage, sharedPage].join("\n");
+
+  assert.doesNotMatch(participantSessionSources, /get\("connect_canvas_participant"\)/);
+  assert.doesNotMatch(participantSessionSources, /set\("connect_canvas_participant"/);
+  assert.doesNotMatch(cookieConstants, /connect_canvas_participant"/);
+});
