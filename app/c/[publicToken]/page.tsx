@@ -3,13 +3,14 @@ import { createHash } from "node:crypto";
 import { and, count, eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { createParticipant, saveReflection, startCanvas } from "@/app/actions";
 import { CopyInvitationLink } from "@/app/c/[publicToken]/copy-invitation-link";
 import { reflections } from "@/app/reflections";
 import { Button } from "@/components/ui/button";
 import { db } from "@/db";
+import { getSharedCanvasState } from "@/lib/canvas-readiness";
 import { canvases, participants, responses } from "@/db/schema";
 
 type CanvasPageProps = {
@@ -162,6 +163,12 @@ export default async function CanvasPage({ params, searchParams }: CanvasPagePro
   const nextReflection = reflections.find((reflection) => !savedReflectionIds.has(reflection.id));
 
   if (participant.completedAt || !nextReflection) {
+    const sharedState = await getSharedCanvasState(canvas.id);
+
+    if (sharedState.ready) {
+      redirect(`/canvas/${publicToken}`);
+    }
+
     return (
       <Shell>
         <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-accent/70">
@@ -175,6 +182,9 @@ export default async function CanvasPage({ params, searchParams }: CanvasPagePro
           When someone else adds theirs, this canvas can begin to take shape.
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <Link href={`/c/${publicToken}`} className="w-full sm:w-auto">
+            <Button type="button" variant="secondary" className="w-full">Check again</Button>
+          </Link>
           <CopyInvitationLink />
           <Link href="/" className="w-full sm:w-auto">
             <Button type="button" variant="secondary" className="w-full">Start another canvas</Button>

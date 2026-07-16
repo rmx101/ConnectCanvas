@@ -10,6 +10,7 @@ import { ownerCookieName } from "@/lib/cookies";
 import { db } from "@/db";
 import { canvasOwners, canvases, participants, responses } from "@/db/schema";
 import { isReflectionId, reflections } from "@/app/reflections";
+import { getSharedCanvasState } from "@/lib/canvas-readiness";
 
 const participantCookieName = "connect_canvas_participant";
 const maxDisplayNameLength = 80;
@@ -31,12 +32,12 @@ function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
-function participantCookieOptions(publicToken: string) {
+function participantCookieOptions() {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
     secure: process.env.NODE_ENV === "production",
-    path: `/c/${publicToken}`,
+    path: "/",
     maxAge: 60 * 60 * 24 * 30,
   };
 }
@@ -185,7 +186,7 @@ async function createParticipantForCanvas(publicToken: string, formData: FormDat
     redirect(`/c/${publicToken}${options.restoreExisting ? "" : "/join"}?error=full`);
   }
 
-  cookieStore.set(participantCookieName, privateToken, participantCookieOptions(publicToken));
+  cookieStore.set(participantCookieName, privateToken, participantCookieOptions());
 
   redirect(`/c/${publicToken}`);
 }
@@ -248,6 +249,12 @@ export async function saveReflection(publicToken: string, reflectionId: string, 
       .update(participants)
       .set({ completedAt: new Date() })
       .where(and(eq(participants.id, participant.id), eq(participants.canvasId, canvas.id)));
+
+    const sharedState = await getSharedCanvasState(canvas.id);
+
+    if (sharedState.ready) {
+      redirect(`/canvas/${publicToken}`);
+    }
   }
 
   redirect(`/c/${publicToken}`);
