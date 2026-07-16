@@ -18,12 +18,17 @@ test("same browser owner session is reused for multiple created canvases", () =>
   assert.match(actions, /hashToken\(ownerToken\)/);
 });
 
-test("canvas and owner association are inserted atomically with public token retry", () => {
-  assert.match(actions, /db\.transaction/);
-  assert.match(actions, /tx\s*\.insert\(canvases\)/);
-  assert.match(actions, /tx\.insert\(canvasOwners\)/);
+test("canvas and owner association avoid Neon HTTP transactions with public token retry", () => {
+  assert.doesNotMatch(actions, /db\.transaction/);
+  assert.match(actions, /db\s*\.insert\(canvases\)/);
+  assert.match(actions, /db\.insert\(canvasOwners\)/);
   assert.match(actions, /for \(let attempt = 0; attempt < 5; attempt \+= 1\)/);
   assert.match(actions, /isUniqueViolation\(error\)/);
+});
+
+test("owner insert failure cleans up the created canvas and rethrows", () => {
+  assert.match(actions, /await db\.delete\(canvases\)\.where\(eq\(canvases\.id, canvas\.id\)\)/);
+  assert.match(actions, /catch \(error\) \{[\s\S]*throw error;[\s\S]*\}/);
 });
 
 test("one owner session hash can own multiple canvases", () => {
