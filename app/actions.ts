@@ -6,13 +6,12 @@ import { and, eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { ownerCookieName } from "@/lib/cookies";
+import { ownerCookieName, participantCookieName } from "@/lib/cookies";
 import { db } from "@/db";
 import { canvasOwners, canvases, participants, responses } from "@/db/schema";
 import { isReflectionId, reflections } from "@/app/reflections";
 import { getSharedCanvasState } from "@/lib/canvas-readiness";
 
-const participantCookieName = "connect_canvas_participant";
 const maxDisplayNameLength = 80;
 const maxResponseLength = 1200;
 
@@ -160,7 +159,7 @@ async function createParticipantForCanvas(publicToken: string, formData: FormDat
   }
 
   const cookieStore = await cookies();
-  const existingToken = cookieStore.get(participantCookieName)?.value;
+  const existingToken = cookieStore.get(participantCookieName(publicToken))?.value;
 
   if (options.restoreExisting && existingToken) {
     const [existingParticipant] = await db
@@ -186,7 +185,7 @@ async function createParticipantForCanvas(publicToken: string, formData: FormDat
     redirect(`/c/${publicToken}${options.restoreExisting ? "" : "/join"}?error=full`);
   }
 
-  cookieStore.set(participantCookieName, privateToken, participantCookieOptions());
+  cookieStore.set(participantCookieName(publicToken), privateToken, participantCookieOptions());
 
   redirect(`/c/${publicToken}`);
 }
@@ -216,7 +215,7 @@ export async function saveReflection(publicToken: string, reflectionId: string, 
     redirect("/");
   }
 
-  const privateToken = (await cookies()).get(participantCookieName)?.value;
+  const privateToken = (await cookies()).get(participantCookieName(publicToken))?.value;
 
   if (!privateToken) {
     redirect(`/c/${publicToken}`);

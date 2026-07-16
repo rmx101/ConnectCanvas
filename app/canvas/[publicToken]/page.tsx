@@ -8,9 +8,7 @@ import { reflections } from "@/app/reflections";
 import { db } from "@/db";
 import { canvasOwners, canvases, participants } from "@/db/schema";
 import { getSharedCanvasState } from "@/lib/canvas-readiness";
-import { ownerCookieName } from "@/lib/cookies";
-
-const participantCookieName = "connect_canvas_participant";
+import { ownerCookieName, participantCookieName } from "@/lib/cookies";
 
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
@@ -35,7 +33,7 @@ export default async function SharedCanvasPage({ params }: SharedCanvasPageProps
   }
 
   const cookieStore = await cookies();
-  const privateToken = cookieStore.get(participantCookieName)?.value;
+  const privateToken = cookieStore.get(participantCookieName(publicToken))?.value;
   const ownerToken = cookieStore.get(ownerCookieName)?.value;
 
   const participantAccess = privateToken

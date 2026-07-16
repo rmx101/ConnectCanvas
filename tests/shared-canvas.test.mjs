@@ -56,3 +56,26 @@ test("third participant remains blocked", () => {
   assert.match(normalPage, /participantCount >= 2/);
   assert.match(actions, /\.onConflictDoNothing\(\{ target: \[participants\.canvasId, participants\.slot\] \}\)/);
 });
+
+test("Canvas A session remains valid after joining Canvas B", async () => {
+  const cookieConstants = await readFile(new URL("../lib/cookies.ts", import.meta.url), "utf8");
+
+  assert.match(cookieConstants, /participantCookieName\(publicToken: string\)/);
+  assert.match(cookieConstants, /`connect_canvas_participant_\$\{publicToken\}`/);
+  assert.match(actions, /cookieStore\.set\(participantCookieName\(publicToken\), privateToken, participantCookieOptions\(\)\)/);
+});
+
+test("Canvas B cannot use Canvas A's cookie", () => {
+  assert.match(normalPage, /get\(participantCookieName\(publicToken\)\)\?\.value/);
+  assert.match(actions, /get\(participantCookieName\(publicToken\)\)\?\.value/);
+  assert.match(sharedPage, /get\(participantCookieName\(publicToken\)\)\?\.value/);
+  assert.match(sharedPage, /eq\(participants\.canvasId, canvas\.id\)/);
+  assert.match(sharedPage, /eq\(participants\.privateSessionTokenHash, hashToken\(privateToken\)\)/);
+});
+
+test("both shared canvases remain accessible from the same browser", () => {
+  assert.match(sharedPage, /cookieStore\.get\(participantCookieName\(publicToken\)\)\?\.value/);
+  assert.match(sharedPage, /from\(participants\)/);
+  assert.match(sharedPage, /eq\(participants\.canvasId, canvas\.id\)/);
+  assert.match(sharedPage, /const sharedState = await getSharedCanvasState\(canvas\.id\);/);
+});

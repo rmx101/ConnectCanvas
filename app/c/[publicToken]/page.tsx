@@ -10,8 +10,9 @@ import { CopyInvitationLink } from "@/app/c/[publicToken]/copy-invitation-link";
 import { reflections } from "@/app/reflections";
 import { Button } from "@/components/ui/button";
 import { db } from "@/db";
-import { getSharedCanvasState } from "@/lib/canvas-readiness";
 import { canvases, participants, responses } from "@/db/schema";
+import { getSharedCanvasState } from "@/lib/canvas-readiness";
+import { participantCookieName } from "@/lib/cookies";
 
 type CanvasPageProps = {
   params: Promise<{
@@ -21,8 +22,6 @@ type CanvasPageProps = {
     error?: string;
   }>;
 };
-
-const participantCookieName = "connect_canvas_participant";
 
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
@@ -84,7 +83,7 @@ export default async function CanvasPage({ params, searchParams }: CanvasPagePro
     notFound();
   }
 
-  const privateToken = (await cookies()).get(participantCookieName)?.value;
+  const privateToken = (await cookies()).get(participantCookieName(publicToken))?.value;
   const participantRows = privateToken
     ? await db
         .select({
