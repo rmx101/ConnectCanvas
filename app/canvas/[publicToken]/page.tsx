@@ -77,7 +77,7 @@ export default async function SharedCanvasPage({ params }: SharedCanvasPageProps
   const [participantOne, participantTwo] = sharedState.participants;
 
   return (
-    <main className="min-h-screen px-5 py-6 sm:px-8">
+    <main className="px-5 py-6 sm:px-8">
       <section className="mx-auto w-full max-w-6xl rounded-[2rem] border bg-card/85 p-6 shadow-sm backdrop-blur sm:p-10">
         <p className="text-sm font-semibold tracking-[0.28em] text-muted-foreground uppercase">Connect Canvas</p>
         <h1 className="mt-5 text-4xl leading-tight font-semibold tracking-[-0.04em] text-balance sm:text-5xl">

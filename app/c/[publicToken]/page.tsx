@@ -49,11 +49,17 @@ function errorMessage(error?: string) {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-screen px-5 py-6 sm:px-8">
-      <section className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-2xl flex-col justify-center rounded-[2rem] border bg-card/85 p-6 shadow-sm backdrop-blur sm:p-10">
+    <main className="px-5 py-6 sm:px-8">
+      <section className="mx-auto flex min-h-[calc(100vh-7rem)] w-full max-w-2xl flex-col justify-center rounded-[2rem] border bg-card/85 p-6 shadow-sm backdrop-blur sm:p-10">
         {children}
       </section>
     </main>
+  );
+}
+
+function PageKicker() {
+  return (
+    <p className="text-sm font-semibold tracking-[0.28em] text-muted-foreground uppercase">Connect Canvas</p>
   );
 }
 
@@ -115,7 +121,7 @@ export default async function CanvasPage({ params, searchParams }: CanvasPagePro
     if (participantCount >= 2) {
       return (
         <Shell>
-          <p className="text-sm font-semibold tracking-[0.28em] text-muted-foreground uppercase">Connect Canvas</p>
+          <PageKicker />
           <h1 className="mt-5 text-4xl leading-tight font-semibold tracking-[-0.04em] text-balance sm:text-5xl">
             This canvas is full.
           </h1>
@@ -131,7 +137,7 @@ export default async function CanvasPage({ params, searchParams }: CanvasPagePro
 
     return (
       <Shell>
-        <p className="text-sm font-semibold tracking-[0.28em] text-muted-foreground uppercase">Connect Canvas</p>
+        <PageKicker />
         <h1 className="mt-5 text-4xl leading-tight font-semibold tracking-[-0.04em] text-balance sm:text-5xl">
           What should we call you?
         </h1>
@@ -170,17 +176,19 @@ export default async function CanvasPage({ params, searchParams }: CanvasPagePro
 
     return (
       <Shell>
-        <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-accent/70">
+        <div className="mx-auto mb-10 flex h-24 w-24 items-center justify-center rounded-full bg-accent/70">
           <div className="h-14 w-14 rounded-full border border-primary/20 bg-background shadow-sm" />
         </div>
-        <p className="text-sm font-semibold tracking-[0.28em] text-muted-foreground uppercase">Connect Canvas</p>
-        <h1 className="mt-5 text-4xl leading-tight font-semibold tracking-[-0.04em] text-balance sm:text-5xl">
-          Your perspective is here.
-        </h1>
-        <p className="mt-6 text-base leading-7 text-muted-foreground sm:text-lg">
-          When someone else adds theirs, this canvas can begin to take shape.
-        </p>
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+        <div className="text-center">
+          <PageKicker />
+          <h1 className="mx-auto mt-5 max-w-xl text-4xl leading-tight font-semibold tracking-[-0.04em] text-balance sm:text-5xl">
+            Your perspective is here.
+          </h1>
+          <p className="mx-auto mt-6 max-w-lg text-base leading-7 text-muted-foreground sm:text-lg">
+            When someone else adds theirs, this canvas can begin to take shape.
+          </p>
+        </div>
+        <div className="mt-10 flex flex-col gap-3 border-t pt-6 sm:flex-row sm:justify-center">
           <Link href={`/c/${publicToken}`} className="w-full sm:w-auto">
             <Button type="button" variant="secondary" className="w-full">Check again</Button>
           </Link>
@@ -195,7 +203,7 @@ export default async function CanvasPage({ params, searchParams }: CanvasPagePro
 
   return (
     <Shell>
-      <p className="text-sm font-semibold tracking-[0.28em] text-muted-foreground uppercase">Connect Canvas</p>
+      <PageKicker />
       <h1 className="mt-5 text-3xl leading-tight font-semibold tracking-[-0.03em] text-balance sm:text-5xl">
         {nextReflection.prompt}
       </h1>
