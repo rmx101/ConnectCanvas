@@ -40,8 +40,8 @@ export default async function Home() {
   const showContinue = await hasOwnedCanvas();
 
   return (
-    <main className="min-h-screen px-5 py-6 sm:px-8">
-      <section className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-4xl flex-col justify-between rounded-[2rem] border bg-card/85 p-6 shadow-sm backdrop-blur sm:p-10">
+    <main className="px-5 py-6 sm:px-8">
+      <section className="mx-auto flex min-h-[calc(100vh-7rem)] w-full max-w-4xl flex-col justify-between rounded-[2rem] border bg-card/85 p-6 shadow-sm backdrop-blur sm:p-10">
         <div className="flex items-center justify-between gap-4">
           <p className="text-sm font-semibold tracking-[0.28em] text-muted-foreground uppercase">
             Connect Canvas
